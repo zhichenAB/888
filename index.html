@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartWardrobe Pro - 智能衣柜管理系统</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React, ReactDOM 和 Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Lucide 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F5F5F7;
+            color: #1D1D1F;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Apple 风格卡片 */
+        .apple-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+
+        /* Apple 风格按钮 */
+        .apple-button {
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .apple-button:active {
+            transform: scale(0.95);
+        }
+
+        .apple-button-primary {
+            background-color: #0071E3;
+            color: white;
+        }
+
+        .apple-button-primary:hover {
+            background-color: #0077ED;
+        }
+
+        .apple-button-secondary {
+            background-color: #F5F5F7;
+            color: #1D1D1F;
+        }
+
+        /* 导航栏 */
+        .glass-nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(210, 210, 215, 0.3);
+            padding: 16px 24px;
+        }
+
+        /* 开关组件 */
+        .toggle-bg {
+            width: 56px;
+            height: 32px;
+            border-radius: 9999px;
+            padding: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            position: relative;
+        }
+
+        .toggle-dot {
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 动画效果 */
+        .animate-pulse-custom {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 翻译数据 ---
+        const TRANSLATIONS = {
+            zh: {
+                loginTitle: '智能衣柜管理系统',
+                accountLabel: '账号',
+                passwordLabel: '密码',
+                loginButton: '登录',
+                loginError: '账号或密码错误',
+                dashboardTitle: '衣柜控制中心',
+                tempLabel: '实时温度',
+                humidityLabel: '实时湿度',
+                autoAdjustLabel: '智能调节',
+                disinfectionLabel: '消毒功能',
+                clothesStatusTitle: '衣物状态监测',
+                garmentId: '编号',
+                status: '状态',
+                inWardrobe: '在柜',
+                outWardrobe: '离柜',
+                disinfected: '已消毒',
+                disinfecting: '消毒中',
+                progress: '进度',
+                checkoutInfo: '借出信息',
+                user: '用户',
+                time: '时间',
+                on: '开启',
+                off: '关闭',
+                logout: '退出登录',
+                labScenario: '实验室场景',
+                stadiumScenario: '体育场场景',
+            },
+            en: {
+                loginTitle: 'Smart Wardrobe System',
+                accountLabel: 'Account',
+                passwordLabel: 'Password',
+                loginButton: 'Login',
+                loginError: 'Invalid account or password',
+                dashboardTitle: 'Wardrobe Control',
+                tempLabel: 'Temperature',
+                humidityLabel: 'Humidity',
+                autoAdjustLabel: 'Auto Adjust',
+                disinfectionLabel: 'Disinfection',
+                clothesStatusTitle: 'Garment Status',
+                garmentId: 'ID',
+                status: 'Status',
+                inWardrobe: 'In',
+                outWardrobe: 'Out',
+                disinfected: 'Disinfected',
+                disinfecting: 'Disinfecting',
+                progress: 'Progress',
+                checkoutInfo: 'Checkout Info',
+                user: 'User',
+                time: 'Time',
+                on: 'ON',
+                off: 'OFF',
+                logout: 'Logout',
+                labScenario: 'Lab Scenario',
+                stadiumScenario: 'Stadium Scenario',
+            }
+        };
+
+        // --- 初始数据 ---
+        const INITIAL_GARMENTS = Array.from({ length: 10 }, (_, i) => ({
+            id: i + 1,
+            inWardrobe: Math.random() > 0.3,
+            disinfected: Math.random() > 0.5,
+            disinfectionProgress: Math.floor(Math.random() * 100),
+            lastCheckoutTime: Math.random() > 0.7 ? '2024-04-13 14:30' : null,
+            lastUser: Math.random() > 0.7 ? 'User_' + Math.floor(Math.random() * 1000) : null,
+        }));
+
+        // --- 图标组件 ---
+        const Icon = ({ name, className, size = 24 }) => {
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        // --- 登录页面 ---
+        const Login = ({ onLogin, lang }) => {
+            const [account, setAccount] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const t = TRANSLATIONS[lang];
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (account === '11111' && password === '123456') {
+                    onLogin();
+                } else {
+                    setError(t.loginError);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="apple-card w-full max-w-md p-8">
+                        <div className="flex flex-col items-center mb-8">
+                            <div className="w-16 h-16 bg-[#0071E3] rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+                                <Icon name="shield-check" className="text-white" size={40} />
+                            </div>
+                            <h1 className="text-2xl font-semibold text-[#1D1D1F]">{t.loginTitle}</h1>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-[#86868B] mb-2">{t.accountLabel}</label>
+                                <input type="text" value={account} onChange={(e) => setAccount(e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F7] border-none rounded-xl focus:ring-2 focus:ring-[#0071E3] outline-none transition-all" placeholder="11111" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-[#86868B] mb-2">{t.passwordLabel}</label>
+                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F7] border-none rounded-xl focus:ring-2 focus:ring-[#0071E3] outline-none transition-all" placeholder="••••••" />
+                            </div>
+                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                            <button type="submit" className="w-full apple-button apple-button-primary">{t.loginButton}</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主面板 ---
+        const Dashboard = ({ lang, onLogout }) => {
+            const t = TRANSLATIONS[lang];
+            const [wardrobe, setWardrobe] = useState({ temperature: 21.5, humidity: 52, isAutoAdjusting: false, isDisinfecting: false });
+            const [garments, setGarments] = useState(INITIAL_GARMENTS);
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setWardrobe(prev => {
+                        let newTemp = prev.temperature;
+                        let newHumidity = prev.humidity;
+                        if (prev.isAutoAdjusting) {
+                            newTemp += (20 - newTemp) * 0.1;
+                            newHumidity += (45 - newHumidity) * 0.1;
+                        } else {
+                            newTemp += (Math.random() - 0.5) * 0.4;
+                            if (newTemp < 18) newTemp = 18; if (newTemp > 25) newTemp = 25;
+                            newHumidity += (Math.random() - 0.5) * 1;
+                            if (newHumidity < 40) newHumidity = 40; if (newHumidity > 60) newHumidity = 60;
+                        }
+                        return { ...prev, temperature: parseFloat(newTemp.toFixed(1)), humidity: parseFloat(newHumidity.toFixed(1)) };
+                    });
+
+                    setGarments(prev => prev.map(g => {
+                        if (wardrobe.isDisinfecting && g.inWardrobe && g.disinfectionProgress < 100) {
+                            const newProgress = Math.min(100, g.disinfectionProgress + Math.random() * 5);
+                            return { ...g, disinfectionProgress: parseFloat(newProgress.toFixed(1)), disinfected: newProgress === 100 };
+                        }
+                        return g;
+                    }));
+                }, 1000);
+                return () => clearInterval(interval);
+            }, [wardrobe.isAutoAdjusting, wardrobe.isDisinfecting]);
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <nav className="glass-nav">
+                        <div className="max-w-7xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#0071E3] rounded-xl flex items-center justify-center shadow-sm"><Icon name="box" className="text-white" size={24} /></div>
+                                <h1 className="text-xl font-semibold hidden sm:block">{t.dashboardTitle}</h1>
+                            </div>
+                            <button onClick={onLogout} className="apple-button apple-button-secondary py-2 px-4"><Icon name="log-out" size={18} /><span className="hidden sm:inline ml-2">{t.logout}</span></button>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="apple-card p-6 flex flex-col justify-between hover:-translate-y-1">
+                                <div className="flex justify-between items-start mb-4"><div className="p-3 bg-orange-50 rounded-2xl"><Icon name="thermometer" className="text-orange-500" /></div><Icon name="activity" className="text-[#86868B]" size={16} /></div>
+                                <div><p className="text-sm font-medium text-[#86868B]">{t.tempLabel}</p><h2 className="text-4xl font-bold mt-1">{wardrobe.temperature}°C</h2></div>
+                            </div>
+                            <div className="apple-card p-6 flex flex-col justify-between hover:-translate-y-1">
+                                <div className="flex justify-between items-start mb-4"><div className="p-3 bg-blue-50 rounded-2xl"><Icon name="droplets" className="text-blue-500" /></div><Icon name="activity" className="text-[#86868B]" size={16} /></div>
+                                <div><p className="text-sm font-medium text-[#86868B]">{t.humidityLabel}</p><h2 className="text-4xl font-bold mt-1">{wardrobe.humidity}%</h2></div>
+                            </div>
+                            <div className="apple-card p-6 hover:-translate-y-1">
+                                <div className="flex justify-between items-center mb-6"><div className="p-3 bg-green-50 rounded-2xl"><Icon name="zap" className="text-green-500" /></div>
+                                    <div onClick={() => setWardrobe(p => ({ ...p, isAutoAdjusting: !p.isAutoAdjusting }))} className={`toggle-bg ${wardrobe.isAutoAdjusting ? 'bg-[#34C759]' : 'bg-[#D2D2D7]'}`}>
+                                        <div className="toggle-dot" style={{ transform: wardrobe.isAutoAdjusting ? 'translateX(24px)' : 'translateX(0)' }}></div>
+                                    </div>
+                                </div>
+                                <p className="text-sm font-medium text-[#86868B]">{t.autoAdjustLabel}</p><h3 className="text-xl font-semibold mt-1">{wardrobe.isAutoAdjusting ? t.on : t.off}</h3>
+                            </div>
+                            <div className="apple-card p-6 hover:-translate-y-1">
+                                <div className="flex justify-between items-center mb-6"><div className="p-3 bg-purple-50 rounded-2xl"><Icon name="shield-check" className="text-purple-500" /></div>
+                                    <div onClick={() => setWardrobe(p => ({ ...p, isDisinfecting: !p.isDisinfecting }))} className={`toggle-bg ${wardrobe.isDisinfecting ? 'bg-[#AF52DE]' : 'bg-[#D2D2D7]'}`}>
+                                        <div className="toggle-dot" style={{ transform: wardrobe.isDisinfecting ? 'translateX(24px)' : 'translateX(0)' }}></div>
+                                    </div>
+                                </div>
+                                <p className="text-sm font-medium text-[#86868B]">{t.disinfectionLabel}</p><h3 className="text-xl font-semibold mt-1">{wardrobe.isDisinfecting ? t.on : t.off}</h3>
+                            </div>
+                        </div>
+
+                        <div className="apple-card overflow-hidden">
+                            <div className="p-6 border-b border-[#D2D2D7]/30 flex justify-between items-center">
+                                <h2 className="text-xl font-semibold">{t.clothesStatusTitle}</h2>
+                                <div className="flex gap-2"><span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-full">{t.labScenario}</span><span className="px-3 py-1 bg-green-50 text-green-600 text-xs font-medium rounded-full">{t.stadiumScenario}</span></div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-[#F5F5F7]/50 text-[#86868B] text-xs uppercase tracking-wider">
+                                            <th className="px-6 py-4 font-semibold">{t.garmentId}</th><th className="px-6 py-4 font-semibold">{t.status}</th><th className="px-6 py-4 font-semibold">{t.disinfected}</th><th className="px-6 py-4 font-semibold">{t.progress}</th><th className="px-6 py-4 font-semibold">{t.checkoutInfo}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#D2D2D7]/30">
+                                        {garments.map((g) => (
+                                            <tr key={g.id} className="hover:bg-[#F5F5F7]/30 transition-colors">
+                                                <td className="px-6 py-4"><span className="font-mono font-medium text-[#1D1D1F]">#{String(g.id).padStart(2, '0')}</span></td>
+                                                <td className="px-6 py-4">{g.inWardrobe ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium"><Icon name="check-circle-2" size={12} /> {t.inWardrobe}</span> : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium"><Icon name="alert-circle" size={12} /> {t.outWardrobe}</span>}</td>
+                                                <td className="px-6 py-4">{g.disinfected ? <span className="text-green-600 flex items-center gap-1 text-sm"><Icon name="shield-check" size={16} /> {t.disinfected}</span> : <span className="text-[#86868B] flex items-center gap-1 text-sm"><Icon name="activity" className={wardrobe.isDisinfecting && g.inWardrobe ? 'animate-pulse-custom text-purple-500' : ''} size={16} /> {wardrobe.isDisinfecting && g.inWardrobe ? t.disinfecting : t.off}</span>}</td>
+                                                <td className="px-6 py-4"><div className="w-full max-w-[120px]"><div className="flex justify-between text-[10px] text-[#86868B] mb-1"><span>{g.disinfectionProgress}%</span></div><div className="h-1.5 w-full bg-[#E8E8ED] rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all duration-500 ${g.disinfected ? 'bg-green-500' : 'bg-[#0071E3]'}`} style={{ width: `${g.disinfectionProgress}%` }}></div></div></div></td>
+                                                <td className="px-6 py-4">{!g.inWardrobe && g.lastUser ? <div className="text-xs space-y-1"><div className="flex items-center gap-1.5 text-[#1D1D1F]"><Icon name="user" size={12} className="text-[#86868B]" /><span>{g.lastUser}</span></div><div className="flex items-center gap-1.5 text-[#86868B]"><Icon name="clock" size={12} /><span>{g.lastCheckoutTime}</span></div></div> : <span className="text-[#D2D2D7]">——</span>}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [lang, setLang] = useState('zh');
+            return (
+                <div className="min-h-screen">
+                    <button onClick={() => setLang(l => l === 'zh' ? 'en' : 'zh')} className="fixed bottom-6 right-6 z-[100] w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-all border border-[#D2D2D7]/30"><Icon name="languages" className="text-[#1D1D1F]" size={20} /></button>
+                    {!isLoggedIn ? <Login lang={lang} onLogin={() => setIsLoggedIn(true)} /> : <Dashboard lang={lang} onLogout={() => setIsLoggedIn(false)} />}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
